@@ -147,28 +147,50 @@ const express = require('express');
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process'); // Linux permissions manage karne ke liye
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Binary ka ek local path define karein taaki windows ko aasaani se mile
-const binaryPath = path.join(__dirname, 'yt-dlp.exe'); 
+// 1. Detect environment: Windows hai ya Linux (Render)
+const isWindows = process.platform === 'win32';
+const binaryName = isWindows ? 'yt-dlp.exe' : 'yt-dlp';
+const binaryPath = path.join(__dirname, binaryName);
+
+// Wrapper instance initialize karein sahi file extension ke sath
 const ytDlpWrap = new YTDlpWrap(binaryPath);
 
 /**
- * Auto-downloader function: Agar yt-dlp.exe nahi hai, to ye use internet se chupchaap download kar lega
+ * Auto-downloader function: Windows aur Render (Linux) dono ke liye compatible
  */
 async function setupYtdlp() {
     if (!fs.existsSync(binaryPath)) {
-        console.log("FREEZE! yt-dlp.exe nahi mila. Github se download ho raha hai, thoda rukein...");
+        console.log(`FREEZE! ${binaryName} nahi mila. Github se download ho raha hai, thoda rukein...`);
         try {
+            // GitHub se automatic platform ke hisab se exact file fetch hogi
             await YTDlpWrap.downloadFromGithub(binaryPath);
-            console.log("SUCCESS: yt-dlp.exe successfully download ho gaya hai!");
+            console.log(`SUCCESS: ${binaryName} successfully download ho gaya hai!`);
+
+            // Agar platform Linux (Render) hai, toh execute permission (chmod +x) dena padega
+            if (!isWindows) {
+                console.log("Linux (Render) platform detected. Setting executable permissions...");
+                execSync(`chmod +x "${binaryPath}"`);
+                console.log("Permissions set successfully!");
+            }
         } catch (err) {
             console.error("FAILED: yt-dlp download karne me error aaya:", err.message);
         }
     } else {
-        console.log("DEBUG: Local yt-dlp.exe pehle se moojud hai.");
+        console.log(`DEBUG: Local ${binaryName} pehle se moojud hai.`);
+        
+        // Safe side check: Agar container rebuild ho rha ho aur binary cached ho
+        if (!isWindows) {
+            try {
+                execSync(`chmod +x "${binaryPath}"`);
+            } catch (e) {
+                console.error("Permissions verify nahi ho payi:", e.message);
+            }
+        }
     }
 }
 
@@ -281,6 +303,6 @@ app.get('/get-video', async (req, res) => {
 
 // Server Start hone se pehle check karenge binary ko
 app.listen(PORT, async () => {
-    await setupYtdlp(); // Binary download invoke karein
+    await setupYtdlp(); // Automatic system ke according binary invoke karein
     console.log(`Server running on http://localhost:${PORT}`);
 });
