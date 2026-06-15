@@ -15,7 +15,7 @@ const binaryName = isWindows ? 'yt-dlp.exe' : 'yt-dlp';
 const binaryPath = path.join(__dirname, binaryName);
 
 // Wrapper instance initialize karein sahi file extension ke sath
-const ytDlpWrap = new YTDlpWrap(binaryPath);
+ ytDlpWrap = new YTDlpWrap(binaryPath);
 
 /**
  * Auto-downloader function: Windows aur Render (Linux) dono ke liye compatible
