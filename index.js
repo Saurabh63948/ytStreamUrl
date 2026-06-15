@@ -1,6 +1,7 @@
 
 const express = require('express');
-const YTDlpWrap = require('yt-dlp-wrap').default;
+let ytDlpWrap;
+YTDlpWrap = require('yt-dlp-wrap').default;
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process'); // Linux permissions manage karne ke liye
